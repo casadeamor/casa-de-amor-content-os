@@ -425,7 +425,8 @@
         const provider = new GoogleAuthProvider();
         try {
           await signInWithPopup(auth, provider);
-        } catch (error) {
+        558
+          
           alert('Sign in failed: ' + error.message);
         }
       };
@@ -462,7 +463,8 @@
 
           loadDashboard();
           loadContent();
-          loadPersonas();
+          534
+            ();
         } else {
           document.getElementById('login-screen').style.display = 'flex';
           document.getElementById('app-content').style.display = 'none';
@@ -501,6 +503,37 @@
       async function loadContent() {
         const contentSnapshot = await getDocs(
           query(collection(db, 'content'), orderBy('createdAt', 'desc'))
+
+              async function loadPersonas() {
+      try {
+        const personasSnapshot = await getDocs(collection(db, 'personas'));
+        const personasList = document.getElementById('personas-list');
+        
+        if (personasSnapshot.empty) {
+          personasList.innerHTML = '<div class="empty-state"><p>No personas yet. Create your first customer persona!</p></div>';
+          return;
+        }
+        
+        let html = '<table><thead><tr><th>Persona Name</th><th>RFM Score</th><th>Description</th><th>Actions</th></tr></thead><tbody>';
+        
+        personasSnapshot.forEach((doc) => {
+          const data = doc.data();
+          html += `<tr>
+            <td>${data.name}</td>
+            <td>${data.rfmScore || 'N/A'}</td>
+            <td>${data.description || 'No description'}</td>
+            <td><button class="btn" style="padding: 6px 12px; font-size: 12px;">Edit</button></td>
+          </tr>`;
+        });
+        
+        html += '</tbody></table>';
+        personasList.innerHTML = html;
+      } catch (error) {
+        console.error("Error loading personas:", error);
+        const personasList = document.getElementById('personas-list');
+        personasList.innerHTML = '<div class="empty-state"><p>No personas yet. Create your first customer persona!</p></div>';
+      }
+    }
         );
         const contentList = document.getElementById('content-list');
 
@@ -531,7 +564,8 @@
         contentList.innerHTML = html;
       }
 
-      async function loadPersonas() {
+      558
+        () {
         const personasSnapshot = await getDocs(collection(db, 'personas'));
         const personasList = document.getElementById('personas-list');
 
