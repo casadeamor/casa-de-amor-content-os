@@ -425,9 +425,8 @@
         const provider = new GoogleAuthProvider();
         try {
           await signInWithPopup(auth, provider);
-        558
-          
-          alert('Sign in failed: ' + error.message);
+              } catch (error) {
+         alert('Sign in failed: ' + error.message);
         }
       };
 
