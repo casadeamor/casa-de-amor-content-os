@@ -374,230 +374,197 @@
     </div>
 
     <script type="module">
-      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-      import {
-        getAuth,
-        GoogleAuthProvider,
-        signInWithPopup,
-        signOut as firebaseSignOut,
-        onAuthStateChanged,
-      } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-      import {
-        getFirestore,
-        collection,
-        addDoc,
-        getDocs,
-        doc,
-        getDoc,
-        updateDoc,
-        deleteDoc,
-        query,
-        where,
-        orderBy,
-        serverTimestamp,
-      } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-      import {
-        getStorage,
-        ref,
-        uploadBytes,
-        getDownloadURL,
-      } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import {
+          getAuth,
+          GoogleAuthProvider,
+          signInWithPopup,
+          signOut as firebaseSignOut,
+          onAuthStateChanged,
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import {
+          getFirestore,
+          collection,
+          addDoc,
+          getDocs,
+          doc,
+          getDoc,
+          updateDoc,
+          deleteDoc,
+          query,
+          where,
+          orderBy,
+          serverTimestamp,
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import {
+          getStorage,
+          ref,
+          uploadBytes,
+          getDownloadURL,
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
-      const firebaseConfig = {
-        apiKey: 'AIzaSyCeZFQKbSEf8ZQYAEHGvnOzM8Sj3HOJbBE',
-        authDomain: 'casa-de-amor-content-os.firebaseapp.com',
-        projectId: 'casa-de-amor-content-os',
-        storageBucket: 'casa-de-amor-content-os.firebasestorage.app',
-        messagingSenderId: '956571087580',
-        appId: '1:956571087580:web:eef1cff739282be8c8fa19',
-        measurementId: 'G-CWKFC5D6YR',
-      };
+        const firebaseConfig = {
+          apiKey: 'AIzaSyCeZFQKbSEf8ZQYAEHGvnOzM8Sj3HOJbBE',
+          authDomain: 'casa-de-amor-content-os.firebaseapp.com',
+          projectId: 'casa-de-amor-content-os',
+          storageBucket: ''casa-de-amor-content-os.firebasestorage.app',
+          messagingSenderId: '956571087580',
+          appId: '1:956571087580:web:eef1cff739282be8c8fa19',
+          measurementId: 'G-CWKFC5D6YR',
+        };
 
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db = getFirestore(app);
-      const storage = getStorage(app);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
 
-      let currentUser = null;
-      let userRole = null;
+        let currentUser = null;
+        let userRole = null;
 
-      window.signInWithGoogle = async function () {
-        const provider = new GoogleAuthProvider();
-        try {
-          await signInWithPopup(auth, provider);
-              } catch (error) {
-         alert('Sign in failed: ' + error.message);
-        }
-      };
+        window.signInWithGoogle = async function () {
+          const provider = new GoogleAuthProvider();
+          try {
+            await signInWithPopup(auth, provider);
+          } catch (error) {
+            alert('Sign in failed: ' + error.message);
+          }
+        };
 
-      window.signOut = async function () {
-        await firebaseSignOut(auth);
-      };
+        window.signOut = async function () {
+          await firebaseSignOut(auth);
+        };
 
-      onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          currentUser = user;
-          document.getElementById('login-screen').style.display = 'none';
-          document.getElementById('app-content').style.display = 'block';
-          document.getElementById('user-email').textContent = user.email;
+        onAuthStateChanged(auth, async (user) => {
+          if (user) {
+            currentUser = user;
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-content').style.display = 'block';
+            document.getElementById('user-email').textContent = user.email;
 
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            userRole = userDoc.data().role;
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (userDoc.exists()) {
+              userRole = userDoc.data().role;
+            } else {
+              userRole = 'creator';
+              await addDoc(collection(db, 'users'), {
+                uid: user.uid,
+                email: user.email,
+                role: 'creator',
+                createdAt: serverTimestamp(),
+              });
+            }
+
+            document.getElementById('user-role-badge').textContent =
+              userRole.toUpperCase();
+            if (userRole !== 'founder') {
+              document.getElementById('performance-tab').style.display = 'none';
+            }
+
+            loadDashboard();
+            loadContent();
+            loadPersonas();
           } else {
-            userRole = 'creator';
-            await addDoc(collection(db, 'users'), {
-              uid: user.uid,
-              email: user.email,
-              role: 'creator',
-              createdAt: serverTimestamp(),
-            });
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('app-content').style.display = 'none';
+          }
+        });
+
+        window.showTab = function (tabName) {
+          document
+            .querySelectorAll('.tab')
+            .forEach((t) => t.classList.remove('active'));
+          document
+            .querySelectorAll('.tab-content')
+            .forEach((c) => c.classList.remove('active'));
+          event.target.classList.add('active');
+          document.getElementById(tabName).classList.add('active');
+        };
+
+        async function loadDashboard() {
+          const contentSnapshot = await getDocs(collection(db, 'content'));
+          const totalContent = contentSnapshot.size;
+          const inReview = contentSnapshot.docs.filter((d) =>
+            ['ai_review', 'ops_review'].includes(d.data().status)
+          ).length;
+          const approved = contentSnapshot.docs.filter(
+            (d) => d.data().status === 'approved'
+          ).length;
+
+          document.getElementById('total-content').textContent = totalContent;
+          document.getElementById('in-review').textContent = inReview;
+          document.getElementById('approved').textContent = approved;
+
+          document.getElementById('recent-activity').innerHTML =
+            '<p>Recent activity will appear here</p>';
+        }
+
+        async function loadContent() {
+          const contentSnapshot = await getDocs(
+            query(collection(db, 'content'), orderBy('createdAt', 'desc'))
+          );
+          const contentList = document.getElementById('content-list');
+
+          if (contentSnapshot.empty) {
+            contentList.innerHTML =
+              '<div class="empty-state"><p>No content yet. Create your first piece!</p></div>';
+            return;
           }
 
-          document.getElementById('user-role-badge').textContent =
-            userRole.toUpperCase();
-          if (userRole !== 'founder') {
-            document.getElementById('performance-tab').style.display = 'none';
+          let html =
+            '<table><thead><tr><th>Title</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody>';
+          contentSnapshot.forEach((doc) => {
+            const data = doc.data();
+            html += `<tr>
+        <td>${data.title || 'Untitled'}</td>
+        <td><span class="status-badge status-${data.status}">${
+              data.status
+            }</span></td>
+        <td>${
+          data.createdAt
+            ? new Date(data.createdAt.toDate()).toLocaleDateString()
+            : 'N/A'
+        }</td>
+        <td><button class="btn" style="padding: 6px 12px; font-size: 12px;">View</button></td>
+      </tr>`;
+          });
+          html += '</tbody></table>';
+          contentList.innerHTML = html;
+        }
+
+        async function loadPersonas() {
+          const personasSnapshot = await getDocs(collection(db, 'personas'));
+          const personasList = document.getElementById('personas-list');
+
+          if (personasSnapshot.empty) {
+            personasList.innerHTML =
+              '<div class="empty-state"><p>No personas yet. Create your first customer persona!</p></div>';
+            return;
           }
 
-          loadDashboard();
-          loadContent();
-          534
-            ();
-        } else {
-          document.getElementById('login-screen').style.display = 'flex';
-          document.getElementById('app-content').style.display = 'none';
-        }
-      });
-
-      window.showTab = function (tabName) {
-        document
-          .querySelectorAll('.tab')
-          .forEach((t) => t.classList.remove('active'));
-        document
-          .querySelectorAll('.tab-content')
-          .forEach((c) => c.classList.remove('active'));
-        event.target.classList.add('active');
-        document.getElementById(tabName).classList.add('active');
-      };
-
-      async function loadDashboard() {
-        const contentSnapshot = await getDocs(collection(db, 'content'));
-        const totalContent = contentSnapshot.size;
-        const inReview = contentSnapshot.docs.filter((d) =>
-          ['ai_review', 'ops_review'].includes(d.data().status)
-        ).length;
-        const approved = contentSnapshot.docs.filter(
-          (d) => d.data().status === 'approved'
-        ).length;
-
-        document.getElementById('total-content').textContent = totalContent;
-        document.getElementById('in-review').textContent = inReview;
-        document.getElementById('approved').textContent = approved;
-
-        document.getElementById('recent-activity').innerHTML =
-          '<p>Recent activity will appear here</p>';
-      }
-
-      async function loadContent() {
-        const contentSnapshot = await getDocs(
-          query(collection(db, 'content'), orderBy('createdAt', 'desc'))
-
-              async function loadPersonas() {
-      try {
-        const personasSnapshot = await getDocs(collection(db, 'personas'));
-        const personasList = document.getElementById('personas-list');
-        
-        if (personasSnapshot.empty) {
-          personasList.innerHTML = '<div class="empty-state"><p>No personas yet. Create your first customer persona!</p></div>';
-          return;
-        }
-        
-        let html = '<table><thead><tr><th>Persona Name</th><th>RFM Score</th><th>Description</th><th>Actions</th></tr></thead><tbody>';
-        
-        personasSnapshot.forEach((doc) => {
-          const data = doc.data();
-          html += `<tr>
-            <td>${data.name}</td>
-            <td>${data.rfmScore || 'N/A'}</td>
-            <td>${data.description || 'No description'}</td>
-            <td><button class="btn" style="padding: 6px 12px; font-size: 12px;">Edit</button></td>
-          </tr>`;
-        });
-        
-        html += '</tbody></table>';
-        personasList.innerHTML = html;
-      } catch (error) {
-        console.error("Error loading personas:", error);
-        const personasList = document.getElementById('personas-list');
-        personasList.innerHTML = '<div class="empty-state"><p>No personas yet. Create your first customer persona!</p></div>';
-      }
-    }
-        );
-        const contentList = document.getElementById('content-list');
-
-        if (contentSnapshot.empty) {
-          contentList.innerHTML =
-            '<div class="empty-state"><p>No content yet. Create your first piece!</p></div>';
-          return;
+          let html =
+            '<table><thead><tr><th>Persona Name</th><th>RFM Score</th><th>Description</th><th>Actions</th></tr></thead><tbody>';
+          personasSnapshot.forEach((doc) => {
+            const data = doc.data();
+            html += `<tr>
+        <td>${data.name}</td>
+        <td>${data.rfmScore || 'N/A'}</td>
+        <td>${data.description || 'No description'}</td>
+        <td><button class="btn" style="padding: 6px 12px; font-size: 12px;">Edit</button></td>
+      </tr>`;
+          });
+          html += '</tbody></table>';
+          personasList.innerHTML = html;
         }
 
-        let html =
-          '<table><thead><tr><th>Title</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody>';
-        contentSnapshot.forEach((doc) => {
-          const data = doc.data();
-          html += `<tr>
-      <td>${data.title || 'Untitled'}</td>
-      <td><span class="status-badge status-${data.status}">${
-            data.status
-          }</span></td>
-      <td>${
-        data.createdAt
-          ? new Date(data.createdAt.toDate()).toLocaleDateString()
-          : 'N/A'
-      }</td>
-      <td><button class="btn" style="padding: 6px 12px; font-size: 12px;">View</button></td>
-    </tr>`;
-        });
-        html += '</tbody></table>';
-        contentList.innerHTML = html;
-      }
+        window.showCreateContent = function () {
+          alert(
+            'Content creation form will open here. You can upload videos/PDFs to Firebase Storage.'
+          );
+        };
 
-      558
-        () {
-        const personasSnapshot = await getDocs(collection(db, 'personas'));
-        const personasList = document.getElementById('personas-list');
-
-        if (personasSnapshot.empty) {
-          personasList.innerHTML =
-            '<div class="empty-state"><p>No personas yet. Create your first customer persona!</p></div>';
-          return;
-        }
-
-        let html =
-          '<table><thead><tr><th>Persona Name</th><th>RFM Score</th><th>Description</th><th>Actions</th></tr></thead><tbody>';
-        personasSnapshot.forEach((doc) => {
-          const data = doc.data();
-          html += `<tr>
-      <td>${data.name}</td>
-      <td>${data.rfmScore || 'N/A'}</td>
-      <td>${data.description || 'No description'}</td>
-      <td><button class="btn" style="padding: 6px 12px; font-size: 12px;">Edit</button></td>
-    </tr>`;
-        });
-        html += '</tbody></table>';
-        personasList.innerHTML = html;
-      }
-
-      window.showCreateContent = function () {
-        alert(
-          'Content creation form will open here. You can upload videos/PDFs to Firebase Storage.'
-        );
-      };
-
-      window.showCreatePersona = function () {
-        alert('Persona creation form will open here.');
-      };
+        window.showCreatePersona = function () {
+          alert('Persona creation form will open here.');
+        };
     </script>
   </body>
 </html>
